@@ -1,6 +1,6 @@
 import socket
 import threading
-from collections import deque
+from  collections import deque
 
 
 class Room:
@@ -13,9 +13,14 @@ class Room:
     def delClient(self, c):
         self.clients.remove(c)
 
-    def sendAllClients(self, msg):
+    def sendNotice(self, msg):
         for client in self.clients:
             client.sendMsg(msg)
+                
+    def sendAllClients(self, c, msg):
+        for client in self.clients:
+            if client != c:
+                client.sendMsg(msg)
 
 
 # 서버 1개 - 채팅방 1개
@@ -50,10 +55,12 @@ class HandleClient(threading.Thread):
         print(f"[NEW CONNECTION] {self.addr} connected.")
         self.nickname = self.conn.recv(1024).decode(FORMAT)
         server.room.addClient(self)
-        server.room.sendAllClients(self.nickname + "님이 입장하였습니다.")
+        # print(server.room.clients.nickname)
+        server.room.sendNotice(self.nickname + "님이 입장하였습니다.\n")
         self.recvMsg()
         server.room.delClient(self)
-        server.room.sendAllClients(self.nickname + "님이 퇴장하였습니다.")
+        # print(server.room.clients.nickname)
+        server.room.sendNotice(self.nickname + "님이 퇴장하였습니다.\n")
 
     def recvMsg(self):
         while self.connected:
@@ -65,7 +72,8 @@ class HandleClient(threading.Thread):
                 if not msg or msg == DISCONNECTED_MESSAGE:
                     self.connected = False
                 else:
-                    server.room.sendAllClients(self, self.nickname + "> " + msg)
+                    print(self.nickname + "] " + msg)
+                    server.room.sendAllClients(self, self.nickname + "] " + msg)
 
     def sendMsg(self, msg):
         self.conn.send(msg.encode(FORMAT))
@@ -73,7 +81,9 @@ class HandleClient(threading.Thread):
 
 
 if __name__=="__main__":
-    SERVER = "192.168.0.69"
+    # HOST = socket.gethostname()
+    # IP = socket.gethostbyname(HOST) # 192.168.0.69
+    SERVER = socket.gethostbyname(socket.gethostname())
     PORT = 5050
     ADDR = (SERVER, PORT)
     HEADER = 64
